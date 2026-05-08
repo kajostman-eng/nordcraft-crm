@@ -264,3 +264,34 @@ class AIChatRequest(BaseModel):
     context_type: str = "general"   # general, lead, client, project
     context_id: Optional[str] = None
     history: Optional[List[dict]] = []
+
+
+# ─── Auth ──────────────────────────────────────────────────────────────────────
+
+class AuthLoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class AuthToken(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserOut(BaseModel):
+    id: str
+    created_at: datetime
+    email: EmailStr
+    full_name: Optional[str]
+    avatar_url: Optional[str]
+    role: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class BootstrapAdminRequest(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: Optional[str] = None

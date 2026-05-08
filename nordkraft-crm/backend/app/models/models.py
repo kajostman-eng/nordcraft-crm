@@ -295,6 +295,7 @@ class User(Base):
     id = Column(String, primary_key=True, default=gen_uuid)
     created_at = Column(DateTime, default=datetime.utcnow)
     email = Column(String(255), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=True)
     full_name = Column(String(200))
     avatar_url = Column(String(500))
     role = Column(String(50), default="member")    # admin, member, viewer
