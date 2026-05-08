@@ -1,2 +1,12 @@
 .vscode/extensions/
 AppData/
+
+# Node / Next.js
+nordkraft-crm/frontend/node_modules/
+nordkraft-crm/frontend/.next/
+
+# Python
+__pycache__/
+*.pyc
+.env
+*.env
