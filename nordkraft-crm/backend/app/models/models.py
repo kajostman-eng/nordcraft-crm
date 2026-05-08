@@ -261,7 +261,7 @@ class Activity(Base):
     type = Column(String(50))    # call, email, meeting, note, proposal, ai_action
     title = Column(String(500))
     body = Column(Text)
-    metadata = Column(JSON)
+    meta = Column("metadata", JSON)
 
     lead = relationship("Lead", back_populates="activities")
 
