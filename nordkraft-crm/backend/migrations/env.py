@@ -3,10 +3,9 @@ from __future__ import annotations
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, MetaData
 
 from app.core.config import settings
-from app.models.models import Base
 
 
 # this is the Alembic Config object, which provides access to the values within
@@ -17,7 +16,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
+# Hand-written migrations only; avoid importing ORM models here so `alembic upgrade`
+# does not depend on declarative mapper configuration.
+target_metadata = MetaData()
 
 
 def _sync_database_url(url: str) -> str:

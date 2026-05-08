@@ -258,7 +258,8 @@ class Activity(Base):
     client_id = Column(String, ForeignKey("clients.id"), nullable=True)
     user_id = Column(String, ForeignKey("users.id"), nullable=True)
 
-    type = Column(String(50))    # call, email, meeting, note, proposal, ai_action
+    # DB column remains "type"; avoid Python attr "type" (SQLAlchemy / introspection edge cases).
+    activity_kind = Column("type", String(50))  # call, email, meeting, note, proposal, ai_action
     title = Column(String(500))
     body = Column(Text)
     activity_meta_json = Column(JSON)

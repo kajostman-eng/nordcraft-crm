@@ -200,7 +200,7 @@ class AutomationOut(BaseModel):
 class ActivityOut(BaseModel):
     id: str
     created_at: datetime
-    type: str
+    activity_kind: str
     title: str
     body: Optional[str]
     lead_id: Optional[str]

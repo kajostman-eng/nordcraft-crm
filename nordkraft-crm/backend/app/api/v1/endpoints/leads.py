@@ -61,7 +61,7 @@ async def create_lead(
     # Log activity
     activity = Activity(
         lead_id=lead.id,
-        type="note",
+        activity_kind="note",
         title=f"Lead created from {lead.source}",
     )
     db.add(activity)
@@ -148,7 +148,7 @@ async def move_pipeline_stage(
 
     activity = Activity(
         lead_id=lead.id,
-        type="note",
+        activity_kind="note",
         title=f"Stage changed: {old} → {new_status}",
     )
     db.add(activity)
