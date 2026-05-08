@@ -287,6 +287,91 @@ class Proposal(Base):
     lead = relationship("Lead", back_populates="proposals")
 
 
+# ─── Documents ────────────────────────────────────────────────────────────────
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    title = Column(String(300), nullable=False)
+    description = Column(Text)
+
+    file_name = Column(String(500), nullable=False)
+    content_type = Column(String(200))
+    size_bytes = Column(Integer)
+
+    storage_key = Column(String(800), nullable=False)
+    url = Column(String(1000))
+
+    lead_id = Column(String, ForeignKey("leads.id"), nullable=True)
+    client_id = Column(String, ForeignKey("clients.id"), nullable=True)
+    uploaded_by = Column(String, ForeignKey("users.id"), nullable=True)
+
+    lead = relationship("Lead")
+    client = relationship("Client")
+    uploader = relationship("User", foreign_keys=[uploaded_by])
+
+
+# ─── Products / Offers ────────────────────────────────────────────────────────
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    name = Column(String(300), nullable=False)
+    description = Column(Text)
+    sku = Column(String(120), unique=True)
+    unit_price = Column(Float, default=0.0)
+    currency = Column(String(3), default="EUR")
+    is_active = Column(Boolean, default=True)
+    tags = Column(Text)  # comma-separated tags
+
+
+class Offer(Base):
+    __tablename__ = "offers"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    title = Column(String(300), nullable=False)
+    status = Column(String(50), default="draft")  # draft, sent, accepted, rejected
+    currency = Column(String(3), default="EUR")
+
+    lead_id = Column(String, ForeignKey("leads.id"), nullable=True)
+    client_id = Column(String, ForeignKey("clients.id"), nullable=True)
+    created_by = Column(String, ForeignKey("users.id"), nullable=True)
+    notes = Column(Text)
+    discount_amount = Column(Float, default=0.0)
+
+    lead = relationship("Lead")
+    client = relationship("Client")
+    creator = relationship("User", foreign_keys=[created_by])
+    items = relationship("OfferItem", back_populates="offer", cascade="all, delete")
+
+
+class OfferItem(Base):
+    __tablename__ = "offer_items"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    offer_id = Column(String, ForeignKey("offers.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(String, ForeignKey("products.id"), nullable=False)
+
+    quantity = Column(Integer, default=1)
+    unit_price = Column(Float, default=0.0)
+    line_total = Column(Float, default=0.0)
+    description = Column(Text)
+
+    offer = relationship("Offer", back_populates="items")
+    product = relationship("Product")
+
+
 # ─── User ─────────────────────────────────────────────────────────────────────
 
 class User(Base):

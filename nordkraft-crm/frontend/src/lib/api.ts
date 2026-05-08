@@ -78,3 +78,41 @@ export const aiApi = {
   chat: (message: string, contextType: string, contextId?: string, history?: object[]) =>
     api.post("/ai/chat", { message, context_type: contextType, context_id: contextId, history }).then((r) => r.data),
 };
+
+// ─── Documents ────────────────────────────────────────────────────────────────
+export const documentsApi = {
+  list: (params?: { lead_id?: string; client_id?: string }) =>
+    api.get("/documents", { params }).then((r) => r.data),
+  upload: (payload: { file: File; title: string; description?: string; lead_id?: string; client_id?: string }) => {
+    const fd = new FormData();
+    fd.append("file", payload.file);
+    fd.append("title", payload.title);
+    if (payload.description) fd.append("description", payload.description);
+    if (payload.lead_id) fd.append("lead_id", payload.lead_id);
+    if (payload.client_id) fd.append("client_id", payload.client_id);
+    return api
+      .post("/documents", fd, { headers: { "Content-Type": "multipart/form-data" } })
+      .then((r) => r.data);
+  },
+  delete: (id: string) => api.delete(`/documents/${id}`),
+};
+
+// ─── Products / Offers ────────────────────────────────────────────────────────
+export const productsApi = {
+  list: (params?: { active_only?: boolean; q?: string }) => api.get("/products", { params }).then((r) => r.data),
+  create: (data: object) => api.post("/products", data).then((r) => r.data),
+  update: (id: string, data: object) => api.patch(`/products/${id}`, data).then((r) => r.data),
+  delete: (id: string) => api.delete(`/products/${id}`),
+};
+
+export const offersApi = {
+  list: (params?: { lead_id?: string; client_id?: string }) => api.get("/offers", { params }).then((r) => r.data),
+  get: (id: string) => api.get(`/offers/${id}`).then((r) => r.data),
+  create: (data: object) => api.post("/offers", data).then((r) => r.data),
+  update: (id: string, data: object) => api.patch(`/offers/${id}`, data).then((r) => r.data),
+  items: (offerId: string) => api.get(`/offers/${offerId}/items`).then((r) => r.data),
+  addItem: (offerId: string, data: object) => api.post(`/offers/${offerId}/items`, data).then((r) => r.data),
+  updateItem: (offerId: string, itemId: string, data: object) =>
+    api.patch(`/offers/${offerId}/items/${itemId}`, data).then((r) => r.data),
+  deleteItem: (offerId: string, itemId: string) => api.delete(`/offers/${offerId}/items/${itemId}`),
+};

@@ -7,6 +7,7 @@ import { Plus, ExternalLink, TrendingUp, AlertTriangle, CheckCircle } from "luci
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils";
+import Link from "next/link";
 
 function HealthBadge({ status, score }: { status: Client["health_status"]; score: number }) {
   const config = {
@@ -33,7 +34,10 @@ function ClientCard({ client }: { client: Client }) {
     : null;
 
   return (
-    <div className="bg-nk-surface border border-nk-border rounded-xl p-4 hover:border-nk-accent/30 transition-colors">
+    <Link
+      href={`/clients/${client.id}`}
+      className="block bg-nk-surface border border-nk-border rounded-xl p-4 hover:border-nk-accent/30 transition-colors"
+    >
       <div className="flex items-center gap-3 mb-4">
         <div
           className="w-9 h-9 rounded-lg flex items-center justify-center text-[13px] font-bold text-white shrink-0"
@@ -78,7 +82,7 @@ function ClientCard({ client }: { client: Client }) {
           </span>
         )}
       </div>
-    </div>
+    </Link>
   );
 }
 

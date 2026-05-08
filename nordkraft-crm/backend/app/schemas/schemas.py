@@ -295,3 +295,98 @@ class BootstrapAdminRequest(BaseModel):
     email: EmailStr
     password: str
     full_name: Optional[str] = None
+
+
+# ─── Documents ────────────────────────────────────────────────────────────────
+
+class DocumentOut(BaseModel):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    title: str
+    description: Optional[str]
+    file_name: str
+    content_type: Optional[str]
+    size_bytes: Optional[int]
+    storage_key: str
+    url: Optional[str]
+    lead_id: Optional[str]
+    client_id: Optional[str]
+    uploaded_by: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
+# ─── Products / Offers ────────────────────────────────────────────────────────
+
+class ProductCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    sku: Optional[str] = None
+    unit_price: float = 0.0
+    currency: str = "EUR"
+    is_active: bool = True
+    tags: Optional[str] = None
+
+
+class ProductOut(BaseModel):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    name: str
+    description: Optional[str]
+    sku: Optional[str]
+    unit_price: float
+    currency: str
+    is_active: bool
+    tags: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
+class OfferCreate(BaseModel):
+    title: str
+    lead_id: Optional[str] = None
+    client_id: Optional[str] = None
+    currency: str = "EUR"
+    notes: Optional[str] = None
+    discount_amount: float = 0.0
+
+
+class OfferOut(BaseModel):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    title: str
+    status: str
+    currency: str
+    lead_id: Optional[str]
+    client_id: Optional[str]
+    created_by: Optional[str]
+    notes: Optional[str]
+    discount_amount: float
+
+    class Config:
+        from_attributes = True
+
+
+class OfferItemCreate(BaseModel):
+    product_id: str
+    quantity: int = 1
+    unit_price: Optional[float] = None
+    description: Optional[str] = None
+
+
+class OfferItemOut(BaseModel):
+    id: str
+    offer_id: str
+    product_id: str
+    quantity: int
+    unit_price: float
+    line_total: float
+    description: Optional[str]
+
+    class Config:
+        from_attributes = True

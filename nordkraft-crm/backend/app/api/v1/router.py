@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.api.deps import get_current_user
-from app.api.v1.endpoints import auth, leads, clients, tasks, automations, dashboard, ai
+from app.api.v1.endpoints import auth, leads, clients, tasks, automations, dashboard, ai, documents, products, offers
 
 api_router = APIRouter()
 
@@ -13,3 +13,6 @@ api_router.include_router(clients.router, prefix="/clients", tags=["Clients"], *
 api_router.include_router(tasks.router, prefix="/tasks", tags=["Tasks"], **protected)
 api_router.include_router(automations.router, prefix="/automations", tags=["Automations"], **protected)
 api_router.include_router(ai.router, prefix="/ai", tags=["AI"], **protected)
+api_router.include_router(documents.router, prefix="/documents", tags=["Documents"], **protected)
+api_router.include_router(products.router, prefix="/products", tags=["Products"], **protected)
+api_router.include_router(offers.router, prefix="/offers", tags=["Offers"], **protected)

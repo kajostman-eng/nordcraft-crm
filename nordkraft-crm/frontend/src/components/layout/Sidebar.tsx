@@ -4,6 +4,9 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, ArrowRightLeft, Bot,
   Building2, Zap, CheckSquare, Sparkles, Settings,
+  FileText,
+  Package,
+  FileSignature,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,11 +16,14 @@ const NAV = [
     { href: "/leads", label: "Leads", icon: Users, badge: "12" },
     { href: "/pipeline", label: "Pipeline", icon: ArrowRightLeft },
     { href: "/assess", label: "AI Assessment", icon: Bot, badgeColor: "green" as const },
+    { href: "/offers", label: "Offers", icon: FileSignature },
+    { href: "/products", label: "Products", icon: Package },
   ]},
   { section: "Delivery", items: [
     { href: "/clients", label: "Clients", icon: Building2 },
     { href: "/automations", label: "Automations", icon: Zap },
     { href: "/tasks", label: "Tasks", icon: CheckSquare },
+    { href: "/documents", label: "Documents", icon: FileText },
   ]},
   { section: "System", items: [
     { href: "/ai", label: "AI Tools", icon: Sparkles },

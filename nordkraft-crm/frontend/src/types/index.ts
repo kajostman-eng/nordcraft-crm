@@ -87,6 +87,59 @@ export interface DashboardStats {
   renewals_due_soon: number;
 }
 
+export interface Document {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  description?: string;
+  file_name: string;
+  content_type?: string;
+  size_bytes?: number;
+  storage_key: string;
+  url?: string;
+  lead_id?: string;
+  client_id?: string;
+  uploaded_by?: string;
+}
+
+export interface Product {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  description?: string;
+  sku?: string;
+  unit_price: number;
+  currency: string;
+  is_active: boolean;
+  tags?: string;
+}
+
+export interface Offer {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  status: string;
+  currency: string;
+  lead_id?: string;
+  client_id?: string;
+  created_by?: string;
+  notes?: string;
+  discount_amount: number;
+}
+
+export interface OfferItem {
+  id: string;
+  offer_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  description?: string;
+}
+
 export interface AIAssessment {
   ai_score: number;
   automation_readiness: number;
