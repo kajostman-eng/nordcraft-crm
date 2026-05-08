@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --nk-bg: #0a0b0d;
+  --nk-surface: #111317;
+  --nk-surface2: #181b20;
+  --nk-border: rgba(255,255,255,0.08);
+  --nk-border2: rgba(255,255,255,0.13);
+  --nk-text: #f0f2f5;
+  --nk-muted: #8892a0;
+  --nk-accent: #3b7ff5;
+  --nk-green: #00c98d;
+  --nk-warn: #f5a623;
+  --nk-danger: #e84040;
+  --nk-purple: #a855f7;
+}
+
+html { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--nk-bg);
+  color: var(--nk-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* Selection */
+::selection { background: rgba(59,127,245,0.3); color: #fff; }
+
+/* Focus rings */
+*:focus-visible { outline: 2px solid rgba(59,127,245,0.6); outline-offset: 2px; }
+
+/* Select dropdown dark */
+select { color-scheme: dark; }
