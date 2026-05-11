@@ -1,16 +1,31 @@
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.core.config import settings
 
+# psycopg / libpq-style query keys that SQLAlchemy may forward to asyncpg.connect(),
+# which only accepts ssl=..., not sslmode=...
+_ASYNCPG_URL_QUERY_DROP = frozenset(
+    {
+        "sslmode",
+        "ssl",
+        "sslrootcert",
+        "sslcert",
+        "sslkey",
+        "channel_binding",
+        "pgbouncer",
+    }
+)
+
 
 def _engine():
-    url = settings.DATABASE_URL
+    raw = settings.DATABASE_URL
     connect_args: dict = {}
     engine_kwargs: dict = {"echo": False}
+    url = raw
 
-    if url.startswith("postgresql+asyncpg://"):
-        parsed = urlparse(url)
+    if raw.startswith("postgresql+asyncpg://"):
+        parsed = urlparse(raw)
         host = (parsed.hostname or "").lower()
         qs = parse_qs(parsed.query)
 
@@ -29,6 +44,12 @@ def _engine():
 
         if connect_args:
             engine_kwargs["connect_args"] = connect_args
+
+        # Drop keys asyncpg rejects; TLS is handled via connect_args above.
+        kept = {k: v for k, v in qs.items() if k.lower() not in _ASYNCPG_URL_QUERY_DROP}
+        pairs = [(k, item) for k, vals in kept.items() for item in vals]
+        new_query = urlencode(pairs, doseq=True) if pairs else ""
+        url = urlunparse(parsed._replace(query=new_query))
 
     return create_async_engine(url, **engine_kwargs)
 
