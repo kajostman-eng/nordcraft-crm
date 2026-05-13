@@ -1,6 +1,8 @@
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from app.core.config import settings
 
 # psycopg / libpq-style query keys that SQLAlchemy may forward to asyncpg.connect(),
@@ -18,8 +20,11 @@ _ASYNCPG_URL_QUERY_DROP = frozenset(
 )
 
 
-def _engine():
-    raw = settings.DATABASE_URL
+def _prepared_statement_name() -> str:
+    return f"__asyncpg_{uuid4()}__"
+
+
+def _engine_options(raw: str) -> tuple[str, dict]:
     connect_args: dict = {}
     engine_kwargs: dict = {"echo": False}
     url = raw
@@ -41,6 +46,9 @@ def _engine():
         pgbouncer = (qs.get("pgbouncer", [None])[0] or "").lower()
         if pgbouncer in {"true", "1"}:
             connect_args["statement_cache_size"] = 0
+            connect_args["prepared_statement_cache_size"] = 0
+            connect_args["prepared_statement_name_func"] = _prepared_statement_name
+            engine_kwargs["poolclass"] = NullPool
 
         if connect_args:
             engine_kwargs["connect_args"] = connect_args
@@ -51,6 +59,11 @@ def _engine():
         new_query = urlencode(pairs, doseq=True) if pairs else ""
         url = urlunparse(parsed._replace(query=new_query))
 
+    return url, engine_kwargs
+
+
+def _engine():
+    url, engine_kwargs = _engine_options(settings.DATABASE_URL)
     return create_async_engine(url, **engine_kwargs)
 
 
