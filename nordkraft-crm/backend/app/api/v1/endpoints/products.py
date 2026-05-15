@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.models import Product
-from app.schemas.schemas import ProductCreate, ProductOut
+from app.schemas.schemas import ProductCreate, ProductOut, ProductUpdate
 
 
 router = APIRouter()
@@ -41,13 +41,12 @@ async def create_product(payload: ProductCreate, db: AsyncSession = Depends(get_
 
 
 @router.patch("/{product_id}", response_model=ProductOut)
-async def update_product(product_id: str, payload: dict, db: AsyncSession = Depends(get_db)):
+async def update_product(product_id: str, payload: ProductUpdate, db: AsyncSession = Depends(get_db)):
     product = await db.get(Product, product_id)
     if not product:
         raise HTTPException(404, "Product not found")
-    for k, v in payload.items():
-        if hasattr(product, k):
-            setattr(product, k, v)
+    for k, v in payload.model_dump(exclude_unset=True).items():
+        setattr(product, k, v)
     product.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(product)

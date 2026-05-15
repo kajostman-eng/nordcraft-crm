@@ -4,7 +4,7 @@ from sqlalchemy import select
 from typing import List
 from app.db.session import get_db
 from app.models.models import Client, Task, Automation
-from app.schemas.schemas import ClientCreate, ClientOut, TaskCreate, TaskOut, AutomationCreate, AutomationOut
+from app.schemas.schemas import ClientCreate, ClientOut, ClientUpdate, TaskCreate, TaskOut, AutomationCreate, AutomationOut
 from datetime import datetime
 
 # ─── Clients ──────────────────────────────────────────────────────────────────
@@ -36,13 +36,12 @@ async def get_client(client_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @clients_router.patch("/{client_id}", response_model=ClientOut)
-async def update_client(client_id: str, payload: dict, db: AsyncSession = Depends(get_db)):
+async def update_client(client_id: str, payload: ClientUpdate, db: AsyncSession = Depends(get_db)):
     client = await db.get(Client, client_id)
     if not client:
         raise HTTPException(404, "Client not found")
-    for k, v in payload.items():
-        if hasattr(client, k):
-            setattr(client, k, v)
+    for k, v in payload.model_dump(exclude_unset=True).items():
+        setattr(client, k, v)
     client.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(client)

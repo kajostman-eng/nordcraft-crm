@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.models import Offer, OfferItem, Product, User
-from app.schemas.schemas import OfferCreate, OfferOut, OfferItemCreate, OfferItemOut
+from app.schemas.schemas import OfferCreate, OfferOut, OfferUpdate, OfferItemCreate, OfferItemOut, OfferItemUpdate
 
 
 router = APIRouter()
@@ -93,13 +93,12 @@ async def add_offer_item(
 
 
 @router.patch("/{offer_id}", response_model=OfferOut)
-async def update_offer(offer_id: str, payload: dict, db: AsyncSession = Depends(get_db)):
+async def update_offer(offer_id: str, payload: OfferUpdate, db: AsyncSession = Depends(get_db)):
     offer = await db.get(Offer, offer_id)
     if not offer:
         raise HTTPException(404, "Offer not found")
-    for k, v in payload.items():
-        if hasattr(offer, k):
-            setattr(offer, k, v)
+    for k, v in payload.model_dump(exclude_unset=True).items():
+        setattr(offer, k, v)
     offer.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(offer)
@@ -107,14 +106,18 @@ async def update_offer(offer_id: str, payload: dict, db: AsyncSession = Depends(
 
 
 @router.patch("/{offer_id}/items/{item_id}", response_model=OfferItemOut)
-async def update_offer_item(offer_id: str, item_id: str, payload: dict, db: AsyncSession = Depends(get_db)):
+async def update_offer_item(
+    offer_id: str,
+    item_id: str,
+    payload: OfferItemUpdate,
+    db: AsyncSession = Depends(get_db),
+):
     item = await db.get(OfferItem, item_id)
     if not item or item.offer_id != offer_id:
         raise HTTPException(404, "Offer item not found")
 
-    for k, v in payload.items():
-        if hasattr(item, k):
-            setattr(item, k, v)
+    for k, v in payload.model_dump(exclude_unset=True).items():
+        setattr(item, k, v)
 
     qty = max(1, int(item.quantity or 1))
     unit_price = float(item.unit_price or 0.0)
