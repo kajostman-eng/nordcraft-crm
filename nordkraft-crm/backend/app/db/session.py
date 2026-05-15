@@ -37,9 +37,12 @@ def _engine():
         if sslmode == "require" or ssl in {"true", "1", "require"} or is_supabase:
             connect_args["ssl"] = "require"
 
-        # If using pgBouncer/transaction pooler, asyncpg statement cache must be disabled.
+        # SQLAlchemy's asyncpg dialect has its own prepared statement cache; PgBouncer
+        # transaction pooling can hand a connection to a backend with conflicting
+        # prepared statement names, so disable both cache layers.
         pgbouncer = (qs.get("pgbouncer", [None])[0] or "").lower()
         if pgbouncer in {"true", "1"}:
+            connect_args["prepared_statement_cache_size"] = 0
             connect_args["statement_cache_size"] = 0
 
         if connect_args:

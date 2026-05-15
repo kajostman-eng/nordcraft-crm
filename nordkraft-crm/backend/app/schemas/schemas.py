@@ -118,6 +118,23 @@ class ClientCreate(BaseModel):
     contract_end: Optional[datetime] = None
 
 
+class ClientUpdate(BaseModel):
+    lead_id: Optional[str] = None
+    company_name: Optional[str] = None
+    industry: Optional[str] = None
+    country: Optional[str] = None
+    plan: Optional[str] = None
+    mrr: Optional[float] = None
+    contract_start: Optional[datetime] = None
+    contract_end: Optional[datetime] = None
+    currency: Optional[str] = None
+    health_score: Optional[int] = None
+    health_status: Optional[str] = None
+    slack_channel: Optional[str] = None
+    notion_workspace_url: Optional[str] = None
+    portal_url: Optional[str] = None
+
+
 class ClientOut(BaseModel):
     id: str
     created_at: datetime
@@ -330,6 +347,16 @@ class ProductCreate(BaseModel):
     tags: Optional[str] = None
 
 
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    sku: Optional[str] = None
+    unit_price: Optional[float] = None
+    currency: Optional[str] = None
+    is_active: Optional[bool] = None
+    tags: Optional[str] = None
+
+
 class ProductOut(BaseModel):
     id: str
     created_at: datetime
@@ -355,6 +382,16 @@ class OfferCreate(BaseModel):
     discount_amount: float = 0.0
 
 
+class OfferUpdate(BaseModel):
+    title: Optional[str] = None
+    status: Optional[str] = None
+    currency: Optional[str] = None
+    lead_id: Optional[str] = None
+    client_id: Optional[str] = None
+    notes: Optional[str] = None
+    discount_amount: Optional[float] = None
+
+
 class OfferOut(BaseModel):
     id: str
     created_at: datetime
@@ -375,6 +412,12 @@ class OfferOut(BaseModel):
 class OfferItemCreate(BaseModel):
     product_id: str
     quantity: int = 1
+    unit_price: Optional[float] = None
+    description: Optional[str] = None
+
+
+class OfferItemUpdate(BaseModel):
+    quantity: Optional[int] = None
     unit_price: Optional[float] = None
     description: Optional[str] = None
 
