@@ -47,6 +47,10 @@ def _engine():
 
         # Drop keys asyncpg rejects; TLS is handled via connect_args above.
         kept = {k: v for k, v in qs.items() if k.lower() not in _ASYNCPG_URL_QUERY_DROP}
+        if pgbouncer in {"true", "1"}:
+            # SQLAlchemy's asyncpg dialect has its own prepared statement cache.
+            # It must be disabled separately for PgBouncer transaction poolers.
+            kept["prepared_statement_cache_size"] = ["0"]
         pairs = [(k, item) for k, vals in kept.items() for item in vals]
         new_query = urlencode(pairs, doseq=True) if pairs else ""
         url = urlunparse(parsed._replace(query=new_query))
