@@ -37,17 +37,25 @@ def _engine():
         if sslmode == "require" or ssl in {"true", "1", "require"} or is_supabase:
             connect_args["ssl"] = "require"
 
-        # If using pgBouncer/transaction pooler, asyncpg statement cache must be disabled.
+        # If using pgBouncer/transaction pooler, asyncpg statement caches must be disabled.
         pgbouncer = (qs.get("pgbouncer", [None])[0] or "").lower()
-        if pgbouncer in {"true", "1"}:
+        use_pgbouncer = pgbouncer in {"true", "1"}
+        if use_pgbouncer:
             connect_args["statement_cache_size"] = 0
 
         if connect_args:
             engine_kwargs["connect_args"] = connect_args
 
         # Drop keys asyncpg rejects; TLS is handled via connect_args above.
-        kept = {k: v for k, v in qs.items() if k.lower() not in _ASYNCPG_URL_QUERY_DROP}
-        pairs = [(k, item) for k, vals in kept.items() for item in vals]
+        pairs = [
+            (k, item)
+            for k, vals in qs.items()
+            if k.lower() not in _ASYNCPG_URL_QUERY_DROP
+            and not (use_pgbouncer and k.lower() == "prepared_statement_cache_size")
+            for item in vals
+        ]
+        if use_pgbouncer:
+            pairs.append(("prepared_statement_cache_size", "0"))
         new_query = urlencode(pairs, doseq=True) if pairs else ""
         url = urlunparse(parsed._replace(query=new_query))
 
