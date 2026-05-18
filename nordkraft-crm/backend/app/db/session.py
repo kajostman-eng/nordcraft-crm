@@ -67,16 +67,20 @@ def _asyncpg_ssl_arg(qs: dict[str, list[str]], host: str):
     if sslmode == "disable" or ssl in {"false", "0", "disable"}:
         return False
 
-    if sslmode in {"require", "verify-ca", "verify-full"} and _certificate_option_present(qs):
-        return _ssl_context_from_query(sslmode, qs)
+    requested_mode = sslmode if sslmode in _ASYNCPG_TLS_MODES else None
+    if requested_mode is None:
+        if ssl in _ASYNCPG_TLS_MODES:
+            requested_mode = ssl
+        elif ssl in {"true", "1"}:
+            requested_mode = "require"
 
-    if sslmode in _ASYNCPG_TLS_MODES:
-        return sslmode
+    if requested_mode in {"require", "verify-ca", "verify-full"} and _certificate_option_present(qs):
+        return _ssl_context_from_query(requested_mode, qs)
 
-    if ssl in _ASYNCPG_TLS_MODES:
-        return ssl
+    if requested_mode:
+        return requested_mode
 
-    if ssl in {"true", "1"} or is_supabase:
+    if is_supabase:
         return "require"
 
     return None

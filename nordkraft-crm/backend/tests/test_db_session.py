@@ -28,6 +28,18 @@ class AsyncpgEngineOptionsTests(unittest.TestCase):
         self.assertEqual(url, "postgresql+asyncpg://user:password@db.example.com:5432/app")
         self.assertEqual(kwargs["connect_args"]["ssl"], "verify-ca")
 
+    def test_asyncpg_ssl_query_with_cert_options_uses_context(self):
+        with mock.patch("ssl.SSLContext.load_verify_locations"):
+            url, kwargs = _asyncpg_engine_options(
+                "postgresql+asyncpg://user:password@db.example.com:5432/app"
+                "?ssl=verify-full&sslrootcert=/tmp/ca.pem"
+            )
+
+        self.assertEqual(url, "postgresql+asyncpg://user:password@db.example.com:5432/app")
+        self.assertIsInstance(kwargs["connect_args"]["ssl"], ssl.SSLContext)
+        self.assertTrue(kwargs["connect_args"]["ssl"].check_hostname)
+        self.assertEqual(kwargs["connect_args"]["ssl"].verify_mode, ssl.CERT_REQUIRED)
+
     def test_sslmode_disable_is_not_downgraded_to_asyncpg_default_prefer(self):
         url, kwargs = _asyncpg_engine_options(
             "postgresql+asyncpg://user:password@db.example.com:5432/app?sslmode=disable"
