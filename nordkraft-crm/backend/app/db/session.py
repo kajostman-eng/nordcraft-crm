@@ -1,4 +1,5 @@
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+import ssl as ssl_lib
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.core.config import settings
@@ -18,8 +19,7 @@ _ASYNCPG_URL_QUERY_DROP = frozenset(
 )
 
 
-def _engine():
-    raw = settings.DATABASE_URL
+def _asyncpg_engine_config(raw: str) -> tuple[str, dict]:
     connect_args: dict = {}
     engine_kwargs: dict = {"echo": False}
     url = raw
@@ -34,13 +34,21 @@ def _engine():
         is_supabase = host.endswith(".supabase.co") or host.endswith(".pooler.supabase.com")
 
         # Ensure TLS when connecting to Supabase or when sslmode/ssl requested.
-        if sslmode == "require" or ssl in {"true", "1", "require"} or is_supabase:
+        if sslmode in {"verify-ca", "verify-full"}:
+            context = ssl_lib.create_default_context(cafile=(qs.get("sslrootcert", [None])[0] or None))
+            if sslmode == "verify-ca":
+                context.check_hostname = False
+            if qs.get("sslcert") and qs.get("sslkey"):
+                context.load_cert_chain(qs["sslcert"][0], qs["sslkey"][0])
+            connect_args["ssl"] = context
+        elif sslmode == "require" or ssl in {"true", "1", "require"} or is_supabase:
             connect_args["ssl"] = "require"
 
         # If using pgBouncer/transaction pooler, asyncpg statement cache must be disabled.
         pgbouncer = (qs.get("pgbouncer", [None])[0] or "").lower()
         if pgbouncer in {"true", "1"}:
             connect_args["statement_cache_size"] = 0
+            qs["prepared_statement_cache_size"] = ["0"]
 
         if connect_args:
             engine_kwargs["connect_args"] = connect_args
@@ -51,6 +59,11 @@ def _engine():
         new_query = urlencode(pairs, doseq=True) if pairs else ""
         url = urlunparse(parsed._replace(query=new_query))
 
+    return url, engine_kwargs
+
+
+def _engine():
+    url, engine_kwargs = _asyncpg_engine_config(settings.DATABASE_URL)
     return create_async_engine(url, **engine_kwargs)
 
 
