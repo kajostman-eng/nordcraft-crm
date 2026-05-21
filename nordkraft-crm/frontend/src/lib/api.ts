@@ -2,7 +2,6 @@ import axios from "axios";
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
-  headers: { "Content-Type": "application/json" },
 });
 
 // Attach auth token from localStorage
@@ -90,9 +89,7 @@ export const documentsApi = {
     if (payload.description) fd.append("description", payload.description);
     if (payload.lead_id) fd.append("lead_id", payload.lead_id);
     if (payload.client_id) fd.append("client_id", payload.client_id);
-    return api
-      .post("/documents", fd, { headers: { "Content-Type": "multipart/form-data" } })
-      .then((r) => r.data);
+    return api.post("/documents", fd).then((r) => r.data);
   },
   delete: (id: string) => api.delete(`/documents/${id}`),
 };
