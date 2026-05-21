@@ -1,4 +1,4 @@
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.core.config import settings
@@ -18,8 +18,10 @@ _ASYNCPG_URL_QUERY_DROP = frozenset(
 )
 
 
-def _engine():
-    raw = settings.DATABASE_URL
+_ASYNC_PGBOUNCER_TRUE_VALUES = {"true", "1"}
+
+
+def _normalized_asyncpg_engine_config(raw: str) -> tuple[str, dict]:
     connect_args: dict = {}
     engine_kwargs: dict = {"echo": False}
     url = raw
@@ -37,9 +39,10 @@ def _engine():
         if sslmode == "require" or ssl in {"true", "1", "require"} or is_supabase:
             connect_args["ssl"] = "require"
 
-        # If using pgBouncer/transaction pooler, asyncpg statement cache must be disabled.
+        # If using pgBouncer/transaction pooler, prepared statements must not be cached.
         pgbouncer = (qs.get("pgbouncer", [None])[0] or "").lower()
-        if pgbouncer in {"true", "1"}:
+        uses_pgbouncer = pgbouncer in _ASYNC_PGBOUNCER_TRUE_VALUES or host.endswith(".pooler.supabase.com")
+        if uses_pgbouncer:
             connect_args["statement_cache_size"] = 0
 
         if connect_args:
@@ -47,10 +50,19 @@ def _engine():
 
         # Drop keys asyncpg rejects; TLS is handled via connect_args above.
         kept = {k: v for k, v in qs.items() if k.lower() not in _ASYNCPG_URL_QUERY_DROP}
+        if uses_pgbouncer:
+            # SQLAlchemy's asyncpg dialect has its own prepared statement cache,
+            # controlled by a URL query option rather than asyncpg connect_args.
+            kept["prepared_statement_cache_size"] = ["0"]
         pairs = [(k, item) for k, vals in kept.items() for item in vals]
         new_query = urlencode(pairs, doseq=True) if pairs else ""
         url = urlunparse(parsed._replace(query=new_query))
 
+    return url, engine_kwargs
+
+
+def _engine():
+    url, engine_kwargs = _normalized_asyncpg_engine_config(settings.DATABASE_URL)
     return create_async_engine(url, **engine_kwargs)
 
 
