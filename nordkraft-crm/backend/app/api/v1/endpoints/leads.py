@@ -5,7 +5,7 @@ from typing import List, Optional
 from app.db.session import get_db
 from app.models.models import Lead, Activity
 from app.schemas.schemas import LeadCreate, LeadUpdate, LeadOut, AIAssessmentRequest
-from app.services.ai_service import run_ai_assessment
+from app.services.lead_assessment_service import run_and_persist_ai_assessment
 from datetime import datetime
 
 router = APIRouter()
@@ -118,19 +118,7 @@ async def assess_lead(
     if not lead:
         raise HTTPException(404, "Lead not found")
 
-    assessment = await run_ai_assessment(lead, payload.context_notes or "")
-
-    # Persist scores
-    lead.ai_score = assessment["ai_score"]
-    lead.automation_readiness = assessment["automation_readiness"]
-    lead.ai_maturity_level = assessment["ai_maturity_level"]
-    lead.estimated_time_savings_hrs = assessment["estimated_time_savings_hrs"]
-    lead.estimated_roi_multiplier = assessment["estimated_roi_multiplier"]
-    lead.ai_assessment_json = assessment
-    lead.last_assessed_at = datetime.utcnow()
-    await db.commit()
-
-    return assessment
+    return await run_and_persist_ai_assessment(lead, db, payload.context_notes or "")
 
 
 @router.post("/{lead_id}/move")
@@ -163,14 +151,6 @@ async def _auto_score_lead(lead_id: str, db: AsyncSession):
     if not lead:
         return
     try:
-        assessment = await run_ai_assessment(lead)
-        lead.ai_score = assessment["ai_score"]
-        lead.automation_readiness = assessment["automation_readiness"]
-        lead.ai_maturity_level = assessment["ai_maturity_level"]
-        lead.estimated_time_savings_hrs = assessment["estimated_time_savings_hrs"]
-        lead.estimated_roi_multiplier = assessment["estimated_roi_multiplier"]
-        lead.ai_assessment_json = assessment
-        lead.last_assessed_at = datetime.utcnow()
-        await db.commit()
+        await run_and_persist_ai_assessment(lead, db)
     except Exception:
         pass
