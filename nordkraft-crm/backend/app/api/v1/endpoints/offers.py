@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_role
 from app.db.session import get_db
 from app.models.models import Offer, OfferItem, Product, User
 from app.schemas.schemas import OfferCreate, OfferOut, OfferItemCreate, OfferItemOut
@@ -31,7 +31,7 @@ async def list_offers(
     return result.scalars().all()
 
 
-@router.post("/", response_model=OfferOut, status_code=201)
+@router.post("/", response_model=OfferOut, status_code=201, dependencies=[Depends(require_role("admin", "member"))])
 async def create_offer(
     payload: OfferCreate,
     user: User = Depends(get_current_user),
@@ -59,7 +59,7 @@ async def list_offer_items(offer_id: str, db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.post("/{offer_id}/items", response_model=OfferItemOut, status_code=201)
+@router.post("/{offer_id}/items", response_model=OfferItemOut, status_code=201, dependencies=[Depends(require_role("admin", "member"))])
 async def add_offer_item(
     offer_id: str,
     payload: OfferItemCreate,
@@ -92,7 +92,7 @@ async def add_offer_item(
     return item
 
 
-@router.patch("/{offer_id}", response_model=OfferOut)
+@router.patch("/{offer_id}", response_model=OfferOut, dependencies=[Depends(require_role("admin", "member"))])
 async def update_offer(offer_id: str, payload: dict, db: AsyncSession = Depends(get_db)):
     offer = await db.get(Offer, offer_id)
     if not offer:
@@ -106,7 +106,7 @@ async def update_offer(offer_id: str, payload: dict, db: AsyncSession = Depends(
     return offer
 
 
-@router.patch("/{offer_id}/items/{item_id}", response_model=OfferItemOut)
+@router.patch("/{offer_id}/items/{item_id}", response_model=OfferItemOut, dependencies=[Depends(require_role("admin", "member"))])
 async def update_offer_item(offer_id: str, item_id: str, payload: dict, db: AsyncSession = Depends(get_db)):
     item = await db.get(OfferItem, item_id)
     if not item or item.offer_id != offer_id:
@@ -131,7 +131,7 @@ async def update_offer_item(offer_id: str, item_id: str, payload: dict, db: Asyn
     return item
 
 
-@router.delete("/{offer_id}/items/{item_id}", status_code=204)
+@router.delete("/{offer_id}/items/{item_id}", status_code=204, dependencies=[Depends(require_role("admin", "member"))])
 async def delete_offer_item(offer_id: str, item_id: str, db: AsyncSession = Depends(get_db)):
     item = await db.get(OfferItem, item_id)
     if not item or item.offer_id != offer_id:

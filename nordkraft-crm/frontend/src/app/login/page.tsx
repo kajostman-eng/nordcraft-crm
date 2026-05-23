@@ -78,7 +78,7 @@ export default function LoginPage() {
           </button>
 
           <div className="text-[11px] text-nk-muted leading-relaxed">
-            First time? Create the first admin via API: <span className="font-mono">POST /api/v1/auth/bootstrap</span>
+            First time? Create the first admin via API with <span className="font-mono">X-Bootstrap-Token</span>.
           </div>
         </form>
       </div>
