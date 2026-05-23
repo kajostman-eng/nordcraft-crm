@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.security import verify_password, create_access_token, hash_password
 from app.api.deps import get_current_user
 from app.db.session import get_db
@@ -13,14 +14,22 @@ router = APIRouter()
 
 
 @router.post("/bootstrap", response_model=UserOut, status_code=201)
-async def bootstrap_admin(payload: BootstrapAdminRequest, db: AsyncSession = Depends(get_db)):
+async def bootstrap_admin(
+    payload: BootstrapAdminRequest,
+    bootstrap_token: str | None = Header(default=None, alias="X-Bootstrap-Token"),
+    db: AsyncSession = Depends(get_db),
+):
     """
     Create the first admin user.
-    Only allowed when there are no users yet.
+    Only allowed when there are no users yet and the setup token matches.
     """
     users_count = await db.execute(select(func.count(User.id)))
     if (users_count.scalar() or 0) > 0:
         raise HTTPException(status_code=403, detail="Bootstrap already completed")
+    if not settings.BOOTSTRAP_TOKEN:
+        raise HTTPException(status_code=403, detail="Admin bootstrap is disabled")
+    if bootstrap_token != settings.BOOTSTRAP_TOKEN:
+        raise HTTPException(status_code=403, detail="Invalid bootstrap token")
 
     user = User(
         email=payload.email,

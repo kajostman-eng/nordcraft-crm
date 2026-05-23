@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
+from app.api.deps import require_role
 from app.db.session import get_db
 from app.models.models import Client, Task, Automation
 from app.schemas.schemas import ClientCreate, ClientOut, TaskCreate, TaskOut, AutomationCreate, AutomationOut
@@ -18,7 +19,7 @@ async def list_clients(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@clients_router.post("/", response_model=ClientOut, status_code=201)
+@clients_router.post("/", response_model=ClientOut, status_code=201, dependencies=[Depends(require_role("admin", "member"))])
 async def create_client(payload: ClientCreate, db: AsyncSession = Depends(get_db)):
     client = Client(**payload.model_dump())
     db.add(client)
@@ -35,7 +36,7 @@ async def get_client(client_id: str, db: AsyncSession = Depends(get_db)):
     return client
 
 
-@clients_router.patch("/{client_id}", response_model=ClientOut)
+@clients_router.patch("/{client_id}", response_model=ClientOut, dependencies=[Depends(require_role("admin", "member"))])
 async def update_client(client_id: str, payload: dict, db: AsyncSession = Depends(get_db)):
     client = await db.get(Client, client_id)
     if not client:
@@ -73,7 +74,7 @@ async def list_tasks(
     return result.scalars().all()
 
 
-@tasks_router.post("/", response_model=TaskOut, status_code=201)
+@tasks_router.post("/", response_model=TaskOut, status_code=201, dependencies=[Depends(require_role("admin", "member"))])
 async def create_task(payload: TaskCreate, db: AsyncSession = Depends(get_db)):
     task = Task(**payload.model_dump())
     db.add(task)
@@ -82,7 +83,7 @@ async def create_task(payload: TaskCreate, db: AsyncSession = Depends(get_db)):
     return task
 
 
-@tasks_router.patch("/{task_id}/complete", response_model=TaskOut)
+@tasks_router.patch("/{task_id}/complete", response_model=TaskOut, dependencies=[Depends(require_role("admin", "member"))])
 async def complete_task(task_id: str, db: AsyncSession = Depends(get_db)):
     task = await db.get(Task, task_id)
     if not task:
@@ -109,7 +110,7 @@ async def list_automations(client_id: str = None, db: AsyncSession = Depends(get
     return result.scalars().all()
 
 
-@automations_router.post("/", response_model=AutomationOut, status_code=201)
+@automations_router.post("/", response_model=AutomationOut, status_code=201, dependencies=[Depends(require_role("admin", "member"))])
 async def create_automation(payload: AutomationCreate, db: AsyncSession = Depends(get_db)):
     auto = Automation(**payload.model_dump())
     db.add(auto)
@@ -118,7 +119,7 @@ async def create_automation(payload: AutomationCreate, db: AsyncSession = Depend
     return auto
 
 
-@automations_router.patch("/{auto_id}/toggle", response_model=AutomationOut)
+@automations_router.patch("/{auto_id}/toggle", response_model=AutomationOut, dependencies=[Depends(require_role("admin", "member"))])
 async def toggle_automation(auto_id: str, db: AsyncSession = Depends(get_db)):
     auto = await db.get(Automation, auto_id)
     if not auto:

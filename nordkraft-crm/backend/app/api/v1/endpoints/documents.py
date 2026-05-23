@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Q
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import require_role
 from app.db.session import get_db
 from app.models.models import Document, User
 from app.schemas.schemas import DocumentOut
@@ -40,7 +40,7 @@ async def upload_document(
     description: str | None = Form(None),
     lead_id: str | None = Form(None),
     client_id: str | None = Form(None),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role("admin", "member")),
     db: AsyncSession = Depends(get_db),
 ):
     if not file.filename:
@@ -70,7 +70,7 @@ async def upload_document(
     return doc
 
 
-@router.delete("/{document_id}", status_code=204)
+@router.delete("/{document_id}", status_code=204, dependencies=[Depends(require_role("admin", "member"))])
 async def delete_document(
     document_id: str,
     db: AsyncSession = Depends(get_db),

@@ -11,18 +11,22 @@ from app.services.ai_service import (
     run_ai_assessment, generate_proposal,
     generate_follow_up_email, summarise_meeting, ai_chat,
 )
+from app.services.lead_assessment_service import apply_ai_assessment
 from pydantic import BaseModel
 from typing import Optional
+from app.api.deps import require_role
 
 router = APIRouter()
 
 
-@router.post("/assess")
+@router.post("/assess", dependencies=[Depends(require_role("admin", "member"))])
 async def assess(payload: AIAssessmentRequest, db: AsyncSession = Depends(get_db)):
     lead = await db.get(Lead, payload.lead_id)
     if not lead:
         raise HTTPException(404, "Lead not found")
     result = await run_ai_assessment(lead, payload.context_notes or "")
+    apply_ai_assessment(lead, result)
+    await db.commit()
     return result
 
 

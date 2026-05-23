@@ -1,14 +1,19 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from typing import List, Optional
-from app.db.session import get_db
+from app.api.deps import require_role
+from app.db.session import get_db, AsyncSessionLocal
 from app.models.models import Lead, Activity
 from app.schemas.schemas import LeadCreate, LeadUpdate, LeadOut, AIAssessmentRequest
 from app.services.ai_service import run_ai_assessment
+from app.services.lead_assessment_service import apply_ai_assessment
 from datetime import datetime
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=List[LeadOut])
@@ -47,7 +52,12 @@ async def list_leads(
     return result.scalars().all()
 
 
-@router.post("/", response_model=LeadOut, status_code=201)
+@router.post(
+    "/",
+    response_model=LeadOut,
+    status_code=201,
+    dependencies=[Depends(require_role("admin", "member"))],
+)
 async def create_lead(
     payload: LeadCreate,
     background_tasks: BackgroundTasks,
@@ -68,7 +78,7 @@ async def create_lead(
     await db.commit()
 
     # Kick off async AI scoring
-    background_tasks.add_task(_auto_score_lead, lead.id, db)
+    background_tasks.add_task(_auto_score_lead, lead.id)
 
     return lead
 
@@ -81,7 +91,7 @@ async def get_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
     return lead
 
 
-@router.patch("/{lead_id}", response_model=LeadOut)
+@router.patch("/{lead_id}", response_model=LeadOut, dependencies=[Depends(require_role("admin", "member"))])
 async def update_lead(
     lead_id: str,
     payload: LeadUpdate,
@@ -98,7 +108,7 @@ async def update_lead(
     return lead
 
 
-@router.delete("/{lead_id}", status_code=204)
+@router.delete("/{lead_id}", status_code=204, dependencies=[Depends(require_role("admin", "member"))])
 async def delete_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
     lead = await db.get(Lead, lead_id)
     if not lead:
@@ -107,7 +117,7 @@ async def delete_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
     await db.commit()
 
 
-@router.post("/{lead_id}/assess")
+@router.post("/{lead_id}/assess", dependencies=[Depends(require_role("admin", "member"))])
 async def assess_lead(
     lead_id: str,
     payload: AIAssessmentRequest,
@@ -120,20 +130,13 @@ async def assess_lead(
 
     assessment = await run_ai_assessment(lead, payload.context_notes or "")
 
-    # Persist scores
-    lead.ai_score = assessment["ai_score"]
-    lead.automation_readiness = assessment["automation_readiness"]
-    lead.ai_maturity_level = assessment["ai_maturity_level"]
-    lead.estimated_time_savings_hrs = assessment["estimated_time_savings_hrs"]
-    lead.estimated_roi_multiplier = assessment["estimated_roi_multiplier"]
-    lead.ai_assessment_json = assessment
-    lead.last_assessed_at = datetime.utcnow()
+    apply_ai_assessment(lead, assessment)
     await db.commit()
 
     return assessment
 
 
-@router.post("/{lead_id}/move")
+@router.post("/{lead_id}/move", dependencies=[Depends(require_role("admin", "member"))])
 async def move_pipeline_stage(
     lead_id: str,
     new_status: str,
@@ -158,19 +161,15 @@ async def move_pipeline_stage(
 
 # ─── Background helpers ───────────────────────────────────────────────────────
 
-async def _auto_score_lead(lead_id: str, db: AsyncSession):
-    lead = await db.get(Lead, lead_id)
-    if not lead:
-        return
-    try:
-        assessment = await run_ai_assessment(lead)
-        lead.ai_score = assessment["ai_score"]
-        lead.automation_readiness = assessment["automation_readiness"]
-        lead.ai_maturity_level = assessment["ai_maturity_level"]
-        lead.estimated_time_savings_hrs = assessment["estimated_time_savings_hrs"]
-        lead.estimated_roi_multiplier = assessment["estimated_roi_multiplier"]
-        lead.ai_assessment_json = assessment
-        lead.last_assessed_at = datetime.utcnow()
-        await db.commit()
-    except Exception:
-        pass
+async def _auto_score_lead(lead_id: str):
+    async with AsyncSessionLocal() as db:
+        lead = await db.get(Lead, lead_id)
+        if not lead:
+            return
+        try:
+            assessment = await run_ai_assessment(lead)
+            apply_ai_assessment(lead, assessment)
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            logger.exception("Auto-scoring failed for lead %s", lead_id)
