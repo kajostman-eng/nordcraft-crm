@@ -8,9 +8,10 @@ from app.schemas.schemas import (
     AIFollowUpRequest, AIChatRequest,
 )
 from app.services.ai_service import (
-    run_ai_assessment, generate_proposal,
+    generate_proposal,
     generate_follow_up_email, summarise_meeting, ai_chat,
 )
+from app.services.lead_assessment_service import assess_and_persist_lead
 from pydantic import BaseModel
 from typing import Optional
 
@@ -22,7 +23,7 @@ async def assess(payload: AIAssessmentRequest, db: AsyncSession = Depends(get_db
     lead = await db.get(Lead, payload.lead_id)
     if not lead:
         raise HTTPException(404, "Lead not found")
-    result = await run_ai_assessment(lead, payload.context_notes or "")
+    result = await assess_and_persist_lead(db, lead, payload.context_notes or "")
     return result
 
 
