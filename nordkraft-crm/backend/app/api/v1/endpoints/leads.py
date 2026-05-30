@@ -1,14 +1,17 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from typing import List, Optional
-from app.db.session import get_db
+from app.db.session import AsyncSessionLocal, get_db
 from app.models.models import Lead, Activity
 from app.schemas.schemas import LeadCreate, LeadUpdate, LeadOut, AIAssessmentRequest
-from app.services.ai_service import run_ai_assessment
+from app.services.lead_assessment_service import assess_and_persist_lead
 from datetime import datetime
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=List[LeadOut])
@@ -68,7 +71,7 @@ async def create_lead(
     await db.commit()
 
     # Kick off async AI scoring
-    background_tasks.add_task(_auto_score_lead, lead.id, db)
+    background_tasks.add_task(_auto_score_lead, lead.id)
 
     return lead
 
@@ -118,19 +121,7 @@ async def assess_lead(
     if not lead:
         raise HTTPException(404, "Lead not found")
 
-    assessment = await run_ai_assessment(lead, payload.context_notes or "")
-
-    # Persist scores
-    lead.ai_score = assessment["ai_score"]
-    lead.automation_readiness = assessment["automation_readiness"]
-    lead.ai_maturity_level = assessment["ai_maturity_level"]
-    lead.estimated_time_savings_hrs = assessment["estimated_time_savings_hrs"]
-    lead.estimated_roi_multiplier = assessment["estimated_roi_multiplier"]
-    lead.ai_assessment_json = assessment
-    lead.last_assessed_at = datetime.utcnow()
-    await db.commit()
-
-    return assessment
+    return await assess_and_persist_lead(db, lead, payload.context_notes or "")
 
 
 @router.post("/{lead_id}/move")
@@ -158,19 +149,12 @@ async def move_pipeline_stage(
 
 # ─── Background helpers ───────────────────────────────────────────────────────
 
-async def _auto_score_lead(lead_id: str, db: AsyncSession):
-    lead = await db.get(Lead, lead_id)
-    if not lead:
-        return
+async def _auto_score_lead(lead_id: str):
     try:
-        assessment = await run_ai_assessment(lead)
-        lead.ai_score = assessment["ai_score"]
-        lead.automation_readiness = assessment["automation_readiness"]
-        lead.ai_maturity_level = assessment["ai_maturity_level"]
-        lead.estimated_time_savings_hrs = assessment["estimated_time_savings_hrs"]
-        lead.estimated_roi_multiplier = assessment["estimated_roi_multiplier"]
-        lead.ai_assessment_json = assessment
-        lead.last_assessed_at = datetime.utcnow()
-        await db.commit()
+        async with AsyncSessionLocal() as db:
+            lead = await db.get(Lead, lead_id)
+            if not lead:
+                return
+            await assess_and_persist_lead(db, lead)
     except Exception:
-        pass
+        logger.exception("Automatic AI scoring failed for lead %s", lead_id)
