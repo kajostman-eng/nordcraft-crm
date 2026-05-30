@@ -4,6 +4,7 @@ AppData/
 # Node / Next.js
 nordkraft-crm/frontend/node_modules/
 nordkraft-crm/frontend/.next/
+nordkraft-crm/frontend/tsconfig.tsbuildinfo
 
 # Python
 __pycache__/
