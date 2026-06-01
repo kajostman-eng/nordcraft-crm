@@ -32,12 +32,17 @@ async def bootstrap_admin(
     if (users_count.scalar() or 0) > 0:
         raise HTTPException(status_code=403, detail="Bootstrap already completed")
 
+    try:
+        password_hash = hash_password(payload.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
     user = User(
         email=payload.email,
         full_name=payload.full_name,
         role="admin",
         is_active=True,
-        password_hash=hash_password(payload.password),
+        password_hash=password_hash,
     )
     db.add(user)
     await db.commit()
