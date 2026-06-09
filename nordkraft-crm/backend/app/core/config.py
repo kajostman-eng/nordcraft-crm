@@ -2,12 +2,16 @@ from pydantic_settings import BaseSettings
 from typing import List
 
 
+DEFAULT_SECRET_KEY = "change-me-in-production"
+
+
 class Settings(BaseSettings):
     # App
     APP_NAME: str = "NordKraft AI CRM"
     DEBUG: bool = False
-    SECRET_KEY: str = "change-me-in-production"
+    SECRET_KEY: str = DEFAULT_SECRET_KEY
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    BOOTSTRAP_TOKEN: str = ""
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/nordkraft_crm"
