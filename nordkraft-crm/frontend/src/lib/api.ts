@@ -19,8 +19,12 @@ export const authApi = {
   login: (email: string, password: string) =>
     api.post("/auth/login", { email, password }).then((r) => r.data as { access_token: string; token_type: string }),
   me: () => api.get("/auth/me").then((r) => r.data),
-  bootstrap: (email: string, password: string, full_name?: string) =>
-    api.post("/auth/bootstrap", { email, password, full_name }).then((r) => r.data),
+  bootstrap: (email: string, password: string, bootstrapToken: string, full_name?: string) =>
+    api.post(
+      "/auth/bootstrap",
+      { email, password, full_name },
+      { headers: { "X-Bootstrap-Token": bootstrapToken } },
+    ).then((r) => r.data),
 };
 
 // ─── Leads ────────────────────────────────────────────────────────────────────

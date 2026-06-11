@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     SECRET_KEY: str = "change-me-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    BOOTSTRAP_TOKEN: str = ""
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/nordkraft_crm"
