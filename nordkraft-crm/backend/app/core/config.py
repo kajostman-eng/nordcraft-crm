@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "NordKraft AI CRM"
     DEBUG: bool = False
     SECRET_KEY: str = "change-me-in-production"
+    BOOTSTRAP_TOKEN: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
     # Database
