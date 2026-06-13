@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from typing import List, Optional
-from app.db.session import get_db
+from app.db.session import AsyncSessionLocal, get_db
 from app.models.models import Lead, Activity
 from app.schemas.schemas import LeadCreate, LeadUpdate, LeadOut, AIAssessmentRequest
 from app.services.ai_service import run_ai_assessment
@@ -68,7 +68,7 @@ async def create_lead(
     await db.commit()
 
     # Kick off async AI scoring
-    background_tasks.add_task(_auto_score_lead, lead.id, db)
+    background_tasks.add_task(_auto_score_lead, lead.id)
 
     return lead
 
@@ -158,19 +158,21 @@ async def move_pipeline_stage(
 
 # ─── Background helpers ───────────────────────────────────────────────────────
 
-async def _auto_score_lead(lead_id: str, db: AsyncSession):
-    lead = await db.get(Lead, lead_id)
-    if not lead:
-        return
-    try:
-        assessment = await run_ai_assessment(lead)
-        lead.ai_score = assessment["ai_score"]
-        lead.automation_readiness = assessment["automation_readiness"]
-        lead.ai_maturity_level = assessment["ai_maturity_level"]
-        lead.estimated_time_savings_hrs = assessment["estimated_time_savings_hrs"]
-        lead.estimated_roi_multiplier = assessment["estimated_roi_multiplier"]
-        lead.ai_assessment_json = assessment
-        lead.last_assessed_at = datetime.utcnow()
-        await db.commit()
-    except Exception:
-        pass
+async def _auto_score_lead(lead_id: str):
+    async with AsyncSessionLocal() as db:
+        lead = await db.get(Lead, lead_id)
+        if not lead:
+            return
+        try:
+            assessment = await run_ai_assessment(lead)
+            lead.ai_score = assessment["ai_score"]
+            lead.automation_readiness = assessment["automation_readiness"]
+            lead.ai_maturity_level = assessment["ai_maturity_level"]
+            lead.estimated_time_savings_hrs = assessment["estimated_time_savings_hrs"]
+            lead.estimated_roi_multiplier = assessment["estimated_roi_multiplier"]
+            lead.ai_assessment_json = assessment
+            lead.last_assessed_at = datetime.utcnow()
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise
