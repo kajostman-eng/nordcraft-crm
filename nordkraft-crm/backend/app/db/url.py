@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+from uuid import uuid4
 
 
 # psycopg / libpq-style query keys that SQLAlchemy may forward to
@@ -16,6 +17,10 @@ _ASYNCPG_URL_QUERY_DROP = frozenset(
         "pgbouncer",
     }
 )
+
+
+def _prepared_statement_name() -> str:
+    return f"__asyncpg_{uuid4()}__"
 
 
 def asyncpg_engine_config(raw_url: str) -> tuple[str, dict]:
@@ -47,6 +52,7 @@ def asyncpg_engine_config(raw_url: str) -> tuple[str, dict]:
         # statement cache; transaction poolers reject/reuse those statements.
         kept["prepared_statement_cache_size"] = ["0"]
         connect_args["statement_cache_size"] = 0
+        connect_args["prepared_statement_name_func"] = _prepared_statement_name
 
     if connect_args:
         engine_kwargs["connect_args"] = connect_args

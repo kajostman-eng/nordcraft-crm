@@ -18,8 +18,10 @@ class AsyncpgEngineConfigTests(unittest.TestCase):
         query = query_params(url)
         self.assertEqual(query["prepared_statement_cache_size"], ["0"])
         self.assertNotIn("sslmode", query)
+        connect_args = dict(kwargs["connect_args"])
+        self.assertTrue(callable(connect_args.pop("prepared_statement_name_func")))
         self.assertEqual(
-            kwargs["connect_args"],
+            connect_args,
             {"ssl": "require", "statement_cache_size": 0},
         )
 
@@ -34,8 +36,10 @@ class AsyncpgEngineConfigTests(unittest.TestCase):
         self.assertEqual(query["application_name"], ["crm"])
         self.assertNotIn("pgbouncer", query)
         self.assertNotIn("ssl", query)
+        connect_args = dict(kwargs["connect_args"])
+        self.assertTrue(callable(connect_args.pop("prepared_statement_name_func")))
         self.assertEqual(
-            kwargs["connect_args"],
+            connect_args,
             {"ssl": "require", "statement_cache_size": 0},
         )
 
